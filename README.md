@@ -1,10 +1,10 @@
-<img width="1544" height="485" alt="image" src="https://github.com/user-attachments/assets/c017e87f-54f2-4d58-8160-64589a7ac7c1" />Below is a clean, professional **README.md** you can paste directly into your Git repo. It reflects your exact workflow and keeps the explanation simple and clear (as you prefer).
-
----
-
-📄 Compliance Copilot — n8n Workflow
+Compliance Copilot — n8n Workflow
 
 An automated AI-powered compliance checking pipeline built using **n8n + OpenAI**.
+
+<img width="1544" height="485" alt="image" src="https://github.com/user-attachments/assets/c017e87f-54f2-4d58-8160-64589a7ac7c1" />
+
+
 
 This workflow scans uploaded documents (PDF), extracts employee details, evaluates compliance risk, and sends alert emails when violations are detected.
 
