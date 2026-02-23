@@ -1,0 +1,336 @@
+{
+  "name": "Compliance Copilot",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "compliance-scan",
+        "responseMode": "lastNode",
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "4668e0f7-3dc2-45ae-a76b-9007da45fdd6",
+      "name": "Webhook",
+      "webhookId": "b1e6e18e-aa43-4dc1-b718-86a04b1fab64",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "data0",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "8fbfb4f5-0a22-4bae-9eb4-3eb169bfb782",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "856e8972-b4a7-42a1-986b-31e5c08a0250",
+              "name": "document_text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "837695e1-3857-4d28-af70-4b05247abd5f",
+              "name": "policy_rules",
+              "value": "- No personal data exposure - No confidential information sharing - No unauthorized payment instructions - No legal or compliance violations",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        -16
+      ],
+      "id": "1d366db6-6b99-4616-91fb-0ef2f8db7cff",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a strict compliance auditor.\n\nUse the employee details below (already extracted):\n\nEmployee Name: {{$json.person_name}}\nEmployee ID: {{$json.employee_id}}\n\nCheck the document against the policy rules.\n\nPolicy Rules:\n{{$json.policy_rules}}\n\nDocument:\n{{$json.document_text}}\n\nReturn ONLY valid JSON.\n\n{\n  \"person_name\": \"string\",\n  \"employee_id\": \"string\",\n  \"risk_level\": \"Low | Medium | High\",\n  \"violations\": [\"list of issues\"],\n  \"confidence\": 0-100,\n  \"summary\": \"short reason\"\n}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a strict compliance auditor.  Check the document against the policy rules.  Return ONLY valid JSON. Do not add explanations outside JSON."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        864,
+        0
+      ],
+      "id": "594d1b85-067f-45d0-aeba-be71dae9bf69",
+      "name": "Basic LLM Chain",
+      "executeOnce": false,
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        752,
+        160
+      ],
+      "id": "82a706e9-49bd-41da-8526-6026ae90063d",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "xosGzBY5ueANoVTC",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5d2ac291-4292-4c7c-9e69-b37363a914e6",
+              "leftValue": "={{ $json.output.risk_level }}",
+              "rightValue": "Medium",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "01d83032-1047-4801-823c-442d4010bc59",
+              "leftValue": "={{ $json.output.risk_level }}",
+              "rightValue": "High",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1200,
+        0
+      ],
+      "id": "a5529414-d0f5-467c-bc2b-17ff1ba7ba62",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "rohitgupta006@gmail.com, lucidshashi@gmail.com",
+        "subject": "Compliance Risk Detected",
+        "emailType": "text",
+        "message": "=🚨 Compliance Risk Alert\n\nEmployee Name: {{$json.output.person_name}}\nEmployee ID: {{$json.output.employee_id}}\n\nRisk Level: {{$json.output.risk_level}}\nConfidence Score: {{$json.output.confidence}}%\n\nViolations:\n- {{$json.output.violations.join('\\n- ')}}\n\nSummary:\n{{$json.output.summary}}\n\n---\nThis alert was generated automatically by the Compliance Copilot.",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1408,
+        -80
+      ],
+      "id": "42f0ee04-d146-46e2-8b56-ccb76139c536",
+      "name": "Send a message",
+      "webhookId": "076bece3-2483-4b46-9d7d-0fd41633de99",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "S0q7y8woLUrLHMEG",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "473ee7b5-bac6-4a21-a703-f00fdfcd6dcc",
+              "name": "person_name",
+              "value": "={{$json.document_text.match(/Employee Name:\\s*([^\\n]+)/)?.[1] \n\n \"Unknown\"}}",
+              "type": "string"
+            },
+            {
+              "id": "dd570605-bb52-46fd-8589-596bdb2cfd23",
+              "name": "employee_id",
+              "value": "={{$json.document_text.match(/Employee ID:\\s*([^\\n]+)/)?.[1] \n\n \"Unknown\"}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        624,
+        0
+      ],
+      "id": "44612a59-7368-410d-8ea7-c87cdc729c5d",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"person_name\": { \"type\": \"string\" },\n    \"employee_id\": { \"type\": \"string\" },\n    \"risk_level\": { \"type\": \"string\" },\n    \"violations\": {\n      \"type\": \"array\",\n      \"items\": { \"type\": \"string\" }\n    },\n    \"confidence\": { \"type\": \"number\" },\n    \"summary\": { \"type\": \"string\" }\n  },\n  \"required\": [\n    \"person_name\",\n    \"employee_id\",\n    \"risk_level\",\n    \"violations\",\n    \"confidence\",\n    \"summary\"\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1008,
+        208
+      ],
+      "id": "4db2290a-9a05-479a-a049-9f300a9f9129",
+      "name": "Structured Output Parser"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "79e2ff41-06ed-46f4-915c-2c2047c0dcc6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c06f74f32476657fd5efcfc62e7747215a75d76aba3a81160f8d4fd3595423a5"
+  },
+  "id": "jDCSK4y6333V3mip",
+  "tags": []
+}
